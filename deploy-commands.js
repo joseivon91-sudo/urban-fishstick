@@ -10,6 +10,11 @@ async function deployCommands(client) {
   for (const file of commandFiles) {
     const command = require(path.join(commandsPath, file));
     if (command.data) commands.push(command.data.toJSON());
+    else {
+      for (const value of Object.values(command)) {
+        if (value?.data) commands.push(value.data.toJSON());
+      }
+    }
   }
 
   const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -17,10 +22,10 @@ async function deployCommands(client) {
   try {
     console.log('🔄 Registrando slash commands...');
     await rest.put(
-      Routes.applicationCommands(client.user.id),
+      Routes.applicationGuildCommands(client.user.id, '1517264758930145301'),
       { body: commands }
     );
-    console.log(`✅ ${commands.length} comandos registrados com sucesso!`);
+    console.log(`✅ ${commands.length} comandos registrados!`);
   } catch (error) {
     console.error('Erro ao registrar comandos:', error);
   }
