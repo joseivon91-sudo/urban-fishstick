@@ -8,15 +8,10 @@ const { assignId, getId, resetId, getAllIds } = require('../data-manager');
 const pedirIdCommand = {
   data: new SlashCommandBuilder()
     .setName('pedir-id')
-    .setDescription('Solicita seu ID único no servidor (001, 002, 003...)')
-    .addStringOption(opt =>
-      opt.setName('nickname')
-        .setDescription('Nome do seu personagem')
-        .setRequired(true)
-    ),
+    .setDescription('Solicita seu ID único no servidor'),
 
   async execute(interaction) {
-    const nickname = interaction.options.getString('nickname');
+    const nickname = interaction.member.displayName;
     const existing = getId(interaction.user.id);
     if (existing) {
       const num = String(existing.number).padStart(3, '0');
@@ -25,10 +20,14 @@ const pedirIdCommand = {
     const result = assignId(interaction.user.id, nickname);
     if (!result) return interaction.reply({ content: '❌ Erro ao atribuir ID.', ephemeral: true });
     const num = String(result.number).padStart(3, '0');
+
+    const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+    if (member) await member.setNickname(`${num} | ${nickname}`).catch(() => {});
+
     const embed = new EmbedBuilder()
       .setColor(0x57F287)
-      .setTitle('🪪 ID Registrado com Sucesso!')
-      .setDescription(`> **${num} | ${nickname}**\n\n**Jogador:** ${interaction.user}\n**Número:** \`${num}\`\n**Personagem:** \`${nickname}\``)
+      .setTitle('🪪 ID Registrado!')
+      .setDescription(`> **${num} | ${nickname}**\n\n**Jogador:** ${interaction.user}\n**Número:** \`${num}\``)
       .setFooter({ text: 'BOT SERRA DO NORTE • Sistema de IDs' })
       .setTimestamp();
     await interaction.reply({ embeds: [embed] });
@@ -38,7 +37,7 @@ const pedirIdCommand = {
 const resetarIdCommand = {
   data: new SlashCommandBuilder()
     .setName('resetar-id')
-    .setDescription('[STAFF] Remove o ID de um membro para que ele possa solicitar um novo')
+    .setDescription('[STAFF] Remove o ID de um membro')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addUserOption(opt =>
       opt.setName('membro')
@@ -50,7 +49,9 @@ const resetarIdCommand = {
     const target = interaction.options.getUser('membro');
     const success = resetId(target.id);
     if (!success) return interaction.reply({ content: `⚠️ ${target} não possui ID registrado.`, ephemeral: true });
-    await interaction.reply({ content: `✅ ID de ${target} foi resetado com sucesso!` });
+    const member = await interaction.guild.members.fetch(target.id).catch(() => null);
+    if (member) await member.setNickname(null).catch(() => {});
+    await interaction.reply({ content: `✅ ID de ${target} foi resetado!` });
   },
 };
 
